@@ -14,6 +14,7 @@ defmodule Kirbot do
   end
 
   def load_modules do
-    # modules will be added here later
+    alias Kirbot.{Basic}
+    use Basic
   end
 end
