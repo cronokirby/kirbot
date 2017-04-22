@@ -15,9 +15,10 @@ defmodule Kirbot.Speedrun.API do
         end)
         get!("http://www.speedrun.com" <> location)
       _ ->
-        Poison.decode! resp.body
+        Poison.decode!(resp.body)
     end
   end
+
   def fetch_name(user_url) do
     # these only get called from commands anyways, crashing is fine
     get!(user_url)["data"]["names"]["international"]
@@ -34,7 +35,7 @@ defmodule Kirbot.Speedrun.API do
   def fetch_abbreviation(name) do
     url = @root <> "games?name=" <> URI.encode(name)
     case get!(url)["data"] do
-      [] -> {:error, "Invalid game name"}
+      [] -> {:error, :invalid_game}
       [x|_] -> {:ok, x["abbreviation"]}
     end
   end
@@ -59,5 +60,44 @@ defmodule Kirbot.Speedrun.API do
     |> Stream.map(fn {:ok, v} -> v end)
     |> Stream.concat
     |> Enum.into(%{})
+  end
+
+  def fetch_time(game, category, rank) do
+    runs = case fetch_categories(game)[category] do
+      nil ->
+        {:error, :no_cat}
+      {url} ->
+        {:ok, get!(url)["data"]["runs"]}
+      {url, variable} ->
+        {:ok, Enum.filter(get!(url)["data"]["runs"], fn run ->
+          variable in Map.values(run["run"]["values"])
+        end)}
+    end
+    with {:ok, runs} <- runs do
+      runcount = length(runs)
+      unless rank in -runcount..runcount + 1 do
+        {:error, :bad_rank}
+      else
+        run = runs |> Enum.at(rank) |> run_info
+      end
+    end
+  end
+
+  defp run_info(run) do
+    time = run["run"]["times"]["primary_t"]
+    player =
+    name = case Enum.at(run["run"]["players"], 0) do
+      %{"rel" => "user", "uri" => u} ->
+        fetch_name(u)
+      %{"name" => n} ->
+        n
+    end
+    vod = case run["run"]["videos"] do
+      nil ->
+        :none
+      some ->
+        Enum.at(some["links"], 0)["uri"]
+    end
+    %{name: name, time: time, vod: vod}
   end
 end
