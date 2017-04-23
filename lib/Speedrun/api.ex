@@ -42,28 +42,32 @@ defmodule Kirbot.Speedrun.API do
 
   def fetch_categories(game) do
     data = get!(@root <> "games/" <> game <> "/categories")["data"]
-    Task.async_stream(data, fn category ->
-      variable_data = get!(Enum.at(category["links"], 2)["uri"])["data"]
-      case variable_data do
-        [] ->
-          [{category["name"], {Enum.at(category["links"], 5)["uri"]}}]
-        [variables|_]  ->
-          variables
-          |> get_in(["values", "values"])
-          |> Enum.map(fn {k, v} ->
-            name = category["name"] <> " - " <> v["label"]
-            link = Enum.at(category["links"], 5)["uri"]
-            {name, {link, k}}
-          end)
-      end
-    end)
-    |> Stream.map(fn {:ok, v} -> v end)
-    |> Stream.concat
-    |> Enum.into(%{})
+    if data == nil do
+      {:error, :invalid_game}
+    else
+      {:ok, Task.async_stream(data, fn category ->
+        variable_data = get!(Enum.at(category["links"], 2)["uri"])["data"]
+        case variable_data do
+          [] ->
+            [{category["name"], {Enum.at(category["links"], 5)["uri"]}}]
+          [variables|_]  ->
+            variables
+            |> get_in(["values", "values"])
+            |> Enum.map(fn {k, v} ->
+              name = category["name"] <> " - " <> v["label"]
+              link = Enum.at(category["links"], 5)["uri"]
+              {name, {link, k}}
+            end)
+        end
+      end)
+      |> Stream.map(fn {:ok, v} -> v end)
+      |> Stream.concat
+      |> Enum.into(%{})}
+    end
   end
 
   def fetch_time(game, category, rank) do
-    runs = case fetch_categories(game)[category] do
+    runs = case elem(fetch_categories(game), 1)[category] do
       nil ->
         {:error, :no_cat}
       {url} ->
@@ -76,9 +80,9 @@ defmodule Kirbot.Speedrun.API do
     with {:ok, runs} <- runs do
       runcount = length(runs)
       unless rank in -runcount..runcount + 1 do
-        {:error, :bad_rank}
+        {:error, {:bad_rank, runcount}}
       else
-        run = runs |> Enum.at(rank) |> run_info
+        {:ok, runs |> Enum.at(rank) |> run_info}
       end
     end
   end
@@ -98,6 +102,22 @@ defmodule Kirbot.Speedrun.API do
       some ->
         Enum.at(some["links"], 0)["uri"]
     end
-    %{name: name, time: time, vod: vod}
+    %{name: name, time: get_time(time), vod: vod}
+  end
+
+  defp get_time(seconds) do
+    {s, ms} = Integer.parse(to_string(seconds))
+    {m, s} = {div(s, 60), rem(s, 60)}
+    {h, m} = {div(m, 60), rem(m, 60)}
+    pad = fn
+      0, _att -> ""
+      n, att -> String.pad_leading(to_string(n), 2, "0") <> att
+    end
+    h = case h do
+      0 -> ""
+      h -> "#{h}:"
+    end
+    {m, s} = {pad.(m, ":"), pad.(s, "")}
+    h <> m <> s <> ms
   end
 end
