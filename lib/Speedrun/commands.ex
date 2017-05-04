@@ -4,8 +4,6 @@ defmodule Kirbot.Speedrun.Commands do
   """
   use Alchemy.Cogs
   use Kirbot.Embeds
-  alias Alchemy.Embed
-  import Embed
   alias Kirbot.Speedrun.API
 
 
