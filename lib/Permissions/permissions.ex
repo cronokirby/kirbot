@@ -2,14 +2,15 @@ defmodule Kirbot.Permissions do
   @moduledoc """
   A set of macros for defining commands restricted by certain permissions.
   """
-  alias Kirbot.Permission.Store
+  alias Kirbot.Permissions.Store
   use Kirbot.Embeds
 
   defmacro __using__(_opts) do
     quote do
       use Alchemy.Cogs
       use Kirbot.Embeds
-      import Kirbot.Permissions
+      alias Kirbot.Permissions
+      import Permissions
     end
   end
 
@@ -17,8 +18,9 @@ defmodule Kirbot.Permissions do
     quote do
       with {:ok, guild} <- Alchemy.Cogs.guild(),
            {:ok, member} <- Alchemy.Cogs.member(),
-           {:ok, has_perms} <-
-             Permissions.Store.check_permissions(guild, unquote(level), member)
+           {:ok, has_perms} <- Kirbot.Permissions.Store.check_permissions(
+             guild, unquote(level), member
+           )
       do
         if has_perms do
           unquote(body)
