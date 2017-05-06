@@ -3,12 +3,18 @@ defmodule Kirbot do
   Entry module to the bot application.
   """
   use Application
+  import Supervisor.Spec
   alias Alchemy.Client
+  alias Kirbot.Permissions.Store
 
   @token Application.get_env(:kirbot, :token)
 
   def start(_type, _args) do
-    run = Client.start(@token)
+    children = [
+      worker(Client, [@token, []]),
+      worker(Store, [])
+    ]
+    run = Supervisor.start_link(children, strategy: :one_for_one)
     load_modules()
     run
   end
