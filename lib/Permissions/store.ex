@@ -37,6 +37,15 @@ defmodule Kirbot.Permissions.Store do
     GenServer.call(__MODULE__, {:set_perms, guild, level, role})
   end
 
+  def check_permissions(guild, level, member) do
+    top_role =
+      guild.roles
+      |> Stream.filter(fn role -> role.id in member.roles end)
+      |> Enum.max_by(fn role -> role.position end)
+    request = {:check_level, guild.id, level, top_role.position}
+    GenServer.call(__MODULE__, request)
+  end
+
   defp raw_info(table, guild) do
     case :dets.lookup(table, guild) do
       [] -> {:error, :no_guild}
@@ -60,10 +69,6 @@ defmodule Kirbot.Permissions.Store do
     {:reply, :ok, table}
   end
 
-  defp new_ranks(range, op) do
-
-  end
-
   def handle_call({:set_perms, guild, level, role}, _from, table) do
     {:ok, info} = raw_info(table, guild)
     rank_info = %{rank: role.position, name: role.name}
@@ -79,5 +84,12 @@ defmodule Kirbot.Permissions.Store do
       |> Map.merge(new_ranks.(if level == 1 do [] else 1..level-1 end, &>/2))
     :dets.insert(table, {guild, new})
     {:reply, :ok, table}
+  end
+
+  def handle_call({:check_level, guild, level, user_pos}, _from, table) do
+    has_rank = with {:ok, info} <- raw_info(table, guild) do
+      {:ok, user_pos >= info[level].rank}
+    end
+    {:reply, has_rank, table}
   end
 end
