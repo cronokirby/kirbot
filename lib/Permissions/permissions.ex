@@ -25,7 +25,7 @@ defmodule Kirbot.Permissions do
         if has_perms do
           unquote(body)
         else
-          Permissions.bad_permission_embed(guild, unquote(level))
+          Kirbot.Permissions.bad_permission_embed(guild, unquote(level))
           |> Alchemy.Embed.send
         end
       end

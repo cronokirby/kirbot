@@ -20,8 +20,9 @@ defmodule Kirbot do
   end
 
   def load_modules do
-    alias Kirbot.{Basic, Speedrun}
+    alias Kirbot.{Basic, Speedrun, Permissions}
     use Basic
     use Speedrun.Commands
+    use Permissions.Commands
   end
 end

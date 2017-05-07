@@ -89,7 +89,6 @@ defmodule Kirbot.Speedrun.API do
 
   defp run_info(run) do
     time = run["run"]["times"]["primary_t"]
-    player =
     name = case Enum.at(run["run"]["players"], 0) do
       %{"rel" => "user", "uri" => u} ->
         fetch_name(u)
