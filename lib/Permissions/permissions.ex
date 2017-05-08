@@ -33,12 +33,13 @@ defmodule Kirbot.Permissions do
   end
 
   def bad_permission_embed(guild, level) do
-    required_role = Store.get_info(guild.id)[level].name
+    {:ok, info} = Store.get_info(guild.id)
+    required_role = info[level].name
     @red_embed
     |> description("""
-      Woops, you don't have permission to use #{level} commands in \
-      #{guild.name}.
-      You must be of rank #{required_role} or higher to access those commands.
+      Woops, you don't have permission to use level `#{level}` commands in \
+      **#{guild.name}**.
+      You must be of rank `#{required_role}` or higher to access those commands.
       For more info, use `!permissions list`.
       """)
   end
