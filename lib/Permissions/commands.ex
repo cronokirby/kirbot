@@ -62,4 +62,26 @@ defmodule Kirbot.Permissions.Commands do
       |> Embed.send
     end
   end
+
+  Cogs.def info do
+    @teal_embed
+    |> title("Permission Info")
+    |> description(
+      "Permissions are used to only let members of a certain role or " <>
+      "higher have access to certain commands. There are only 3 levels " <>
+      "of commands"
+    )
+    |> field("`!permissions set`",
+      "This command allows you to set a certain level of commands to be " <>
+      "accessible only by members of rank equal to or higher than " <>
+      "a minimum Role.\nThe correct syntax for this command is:\n" <>
+      "`!permissions set level Role`"
+    )
+    |> field("`!permissions list`",
+      "This command gives you a hierarchy of Roles in your server " <>
+      "as well as the minimum Rol for each leve.\nThe correct syntax " <>
+      "for this command is:\n`!permissions list`"
+    )
+    |> Embed.send
+  end
 end
