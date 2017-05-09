@@ -21,20 +21,20 @@ defmodule Kirbot.Permissions.Store do
     :normal
   end
 
-  def get_info(guild) do
-    GenServer.call(__MODULE__, {:get_info, guild})
+  def get_info(guild_id) do
+    GenServer.call(__MODULE__, {:get_info, guild_id})
   end
 
-  def register(guild) do
-    GenServer.call(__MODULE__, {:register, guild})
+  def register(guild_id) do
+    GenServer.call(__MODULE__, {:register, guild_id})
   end
 
-  def remove(guild) do
-    GenServer.call(__MODULE__, {:remove, guild})
+  def remove(guild_id) do
+    GenServer.call(__MODULE__, {:remove, guild_id})
   end
 
-  def set_permission_level(guild, level, %Role{} = role) do
-    GenServer.call(__MODULE__, {:set_perms, guild, level, role})
+  def set_permission_level(guild_id, level, %Role{} = role) do
+    GenServer.call(__MODULE__, {:set_perms, guild_id, level, role})
   end
 
   def check_permissions(guild, level, member) do
@@ -46,31 +46,31 @@ defmodule Kirbot.Permissions.Store do
     GenServer.call(__MODULE__, request)
   end
 
-  defp raw_info(table, guild) do
-    case :dets.lookup(table, guild) do
+  defp raw_info(table, guild_id) do
+    case :dets.lookup(table, guild_id) do
       [] -> {:error, :no_guild}
       [{_, info}] -> {:ok, info}
     end
   end
 
-  def handle_call({:get_info, guild}, _from, table) do
-    {:reply, raw_info(table, guild), table}
+  def handle_call({:get_info, guild_id}, _from, table) do
+    {:reply, raw_info(table, guild_id), table}
   end
 
-  def handle_call({:register, guild}, _from, table) do
+  def handle_call({:register, guild_id}, _from, table) do
     rank = %{rank: 0, name: "@everyone"}
     info = %{1 => rank, 2 => rank, 3 => rank}
-    :dets.insert_new(table, {guild, info})
+    :dets.insert_new(table, {guild_id, info})
     {:reply, :ok, table}
   end
 
-  def handle_call({:remove, guild}, _from, table) do
-    :dets.delete(table, guild)
+  def handle_call({:remove, guild_id}, _from, table) do
+    :dets.delete(table, guild_id)
     {:reply, :ok, table}
   end
 
-  def handle_call({:set_perms, guild, level, role}, _from, table) do
-    {:ok, info} = raw_info(table, guild)
+  def handle_call({:set_perms, guild_id, level, role}, _from, table) do
+    {:ok, info} = raw_info(table, guild_id)
     rank_info = %{rank: role.position, name: role.name}
     new_ranks = fn
       start, stop, op when start <= stop ->
@@ -85,12 +85,12 @@ defmodule Kirbot.Permissions.Store do
       |> put_in([level], rank_info)
       |> Map.merge(level+1, 3, &</2)
       |> Map.merge(1, level-1, &>/2)
-    :dets.insert(table, {guild, new})
+    :dets.insert(table, {guild_id, new})
     {:reply, :ok, table}
   end
 
-  def handle_call({:check_level, guild, level, user_pos}, _from, table) do
-    has_rank = with {:ok, info} <- raw_info(table, guild) do
+  def handle_call({:check_level, guild_id, level, user_pos}, _from, table) do
+    has_rank = with {:ok, info} <- raw_info(table, guild_id) do
       {:ok, user_pos >= info[level].rank}
     end
     {:reply, has_rank, table}

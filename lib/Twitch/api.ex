@@ -22,6 +22,17 @@ defmodule Kirbot.Twitch.API do
     end
   end
 
+  def find_game(name) do
+    case @root <> "search/games?q=" <>
+    String.replace(name, " ", "+") <> "&type=suggest"
+    |> get!
+    |> get_in(["games"])
+    do
+      [] -> {:error, :no_game}
+      [%{"name" => name}|_] -> {:ok, name}
+    end
+  end
+
   def stream_info(name) do
     stream_link = "http://twitch.tv/#{name}"
     case get!(@root <> "streams/#{name}") do
