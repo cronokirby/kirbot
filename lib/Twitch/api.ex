@@ -33,6 +33,18 @@ defmodule Kirbot.Twitch.API do
     end
   end
 
+  defp format(info) do
+    %{uptime: info["created_at"],
+      online: true,
+      url: info["channel"]["url"],
+      game: info["game"],
+      viewers: info["viewers"],
+      preview: info["preview"]["medium"],
+      display_name: info["channel"]["display_name"],
+      status: info["channel"]["status"],
+      logo: info["channel"]["logo"]}
+  end
+
   def stream_info(name) do
     stream_link = "http://twitch.tv/#{name}"
     case get!(@root <> "streams/#{name}") do
@@ -41,18 +53,15 @@ defmodule Kirbot.Twitch.API do
          %{online: false,
            url: stream_link}}
       %{"stream" => info} ->
-        {:ok,
-         %{uptime: info["created_at"],
-           online: true,
-           url: stream_link,
-           game: info["game"],
-           viewers: info["viewers"],
-           preview: info["preview"]["medium"],
-           display_name: info["channel"]["display_name"],
-           status: info["channel"]["status"],
-           logo: info["channel"]["logo"]}}
+        {:ok, format(info)}
       _ ->
         {:error, :no_such_stream}
     end
+  end
+
+  def info_list(names) do
+    url = @root <> "streams?limit=100&channel=" <> Enum.join(names, ",")
+    get!(url)["streams"]
+    |> Enum.map(&format/1)
   end
 end

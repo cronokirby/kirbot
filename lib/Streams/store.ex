@@ -71,6 +71,25 @@ defmodule Kirbot.Streams.Store do
     GenServer.call(__MODULE__, {:get_filters, guild_id})
   end
 
+  def update_streams do
+    streams = GenServer.call(__MODULE__, :stream_list)
+    all_streams = API.info_list(MapSet.to_list(streams))
+    enabled = GenServer.call(__MODULE__, :enabled)
+    Task.async_stream(enabled, fn guild_id ->
+      info = GenServer.call(__MODULE__, {:raw_info, guild_id})
+      in_guild = all_streams
+                 |> Stream.filter(&MapSet.member?(info.streamlist, &1))
+      new = if info.filters.enabled do
+        Enum.filter(in_guild, &MapSet.member?(info.filters.set, &1["game"]))
+      else
+        in_guild
+      end
+      |> (&put_in(info.live_streams, &1)).()
+      GenServer.call(__MODULE__, {:push_info, guild_id, new})
+    end)
+    |> Stream.run
+  end
+
   defp raw_info(table, guild_id) do
     case :dets.lookup(table, guild_id) do
       [] ->
@@ -163,5 +182,22 @@ defmodule Kirbot.Streams.Store do
   def handle_call({:get_filters, guild_id}, _from, table) do
     {:ok, info} = raw_info(table, guild_id)
     {:reply, info.filters.set, table}
+  end
+
+  def handle_call(:stream_list, _from, table) do
+    {:reply, get_streams(table), table}
+  end
+
+  def handle_call(:enabled, _from, table) do
+    {:reply, get_enabled(table), table}
+  end
+
+  def handle_call({:raw_info, guild_id}, _from, table) do
+    {:reply, raw_info(table, guild_id), table}
+  end
+
+  def handle_call({:push_info, guild_id, info}, _from, table) do
+    :dets.insert(table, {guild_id, info})
+    {:reply, :ok, table}
   end
 end
