@@ -5,14 +5,16 @@ defmodule Kirbot do
   use Application
   import Supervisor.Spec
   alias Alchemy.Client
-  alias Kirbot.Permissions.Store
+  alias Kirbot.Permissions
+  alias Kirbot.Streams
 
   @token Application.get_env(:kirbot, :token)
 
   def start(_type, _args) do
     children = [
       worker(Client, [@token, []]),
-      worker(Store, [])
+      worker(Permissions.Store, []),
+      worker(Streams.Store, [])
     ]
     run = Supervisor.start_link(children, strategy: :one_for_one)
     load_modules()

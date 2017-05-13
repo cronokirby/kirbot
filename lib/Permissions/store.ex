@@ -83,8 +83,8 @@ defmodule Kirbot.Permissions.Store do
     new =
       info
       |> put_in([level], rank_info)
-      |> Map.merge(level+1, 3, &</2)
-      |> Map.merge(1, level-1, &>/2)
+      |> Map.merge(new_ranks.(level+1, 3, &</2))
+      |> Map.merge(new_ranks.(1, level-1, &>/2))
     :dets.insert(table, {guild_id, new})
     {:reply, :ok, table}
   end
